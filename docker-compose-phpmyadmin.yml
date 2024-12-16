@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+
+  nginx:
+    image: nginx:1.27.0-alpine3.19
+    container_name: nginx
+    restart: always
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf  # Обязательно создайте файл конфигурации nginx.conf
+      - phpmyadmin_storage:/var/www/html
+    labels:
+      - traefik.enable=true  # Включить Traefik для этого сервиса
+      - traefik.http.routers.nginx.rule=Host(`${DOMAIN}`)  # Правило для маршрутизации
+      - traefik.http.services.nginx.loadbalancer.server.port=80  # Порт, на который Traefik будет проксировать запросы
+
+  phpmyadmin:
+    image: phpmyadmin:fpm-alpine
+    container_name: phpmyadmin
+    restart: always
+    ports:
+      - "${PORT}:9000"
+    environment:
+      PMA_HOST: ${PMA_HOST}  # Имя хоста MySQL
+      PMA_PORT: ${PMA_PORT}
+    volumes:
+      - phpmyadmin_storage:/var/www/html
+
+networks:
+  default:
+    external: true
+    name: main
+
+volumes:
+  phpmyadmin_storage:
+    driver: local
